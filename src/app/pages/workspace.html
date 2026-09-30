@@ -1,0 +1,647 @@
+<div class="app-layout">
+  <aside class="sidebar" [class.open]="mobile()">
+    <a routerLink="/catalogue" class="brand">GA<span>GESTION DES CONSOMMABLES</span></a>
+    <p class="nav-caption">MON ESPACE</p>
+    <nav aria-label="Espace personnel">
+      @for (item of personal; track item[0]) {
+        <a [routerLink]="'/' + item[0]" routerLinkActive="active"
+          ><span>{{ item[1] }}</span
+          >{{ item[2] }}</a
+        >
+      }
+    </nav>
+    @if (admin) {
+      <p class="nav-caption">ADMINISTRATION</p>
+      <nav aria-label="Administration">
+        @for (item of administration; track item[0]) {
+          <a [routerLink]="'/' + item[0]" routerLinkActive="active"
+            ><span>{{ item[1] }}</span
+            >{{ item[2] }}</a
+          >
+        }
+      </nav>
+    }
+    <div class="sidebar-bottom">
+      <a routerLink="/profil" class="account"
+        ><span class="avatar">{{ auth.user()?.nom?.charAt(0) }}</span
+        ><span
+          >{{ auth.user()?.nom }}<small>{{ label(auth.user()?.role) }}</small></span
+        ></a
+      ><button class="logout" (click)="logout()">Se déconnecter ↗</button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button
+        class="menu"
+        (click)="mobile.set(!mobile())"
+        aria-label="Ouvrir ou fermer le menu"
+        [attr.aria-expanded]="mobile()"
+      >
+        ☰</button
+      ><span
+        >GA Burkina <span class="separator">/</span>
+        {{ admin ? 'Administration' : 'Espace collaborateur' }}</span
+      ><span class="workspace-mark">● Espace entreprise</span>
+    </header>
+    <main class="content">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">GESTION DES CONSOMMABLES</p>
+          <h1>{{ title }}</h1>
+          <p class="muted">
+            @switch (section) {
+              @case ('catalogue') {
+                Retrouvez vos fournitures et envoyez une demande à l’administrateur.
+              }
+              @case ('demandes') {
+                Examinez les demandes et répondez à vos collaborateurs.
+              }
+              @case ('articles') {
+                Suivez les disponibilités et enregistrez vos entrées et sorties.
+              }
+              @case ('courriels') {
+                Suivez les notifications non envoyées et relancez les échecs.
+              }
+              @default {
+                Consultez et gérez vos informations en toute simplicité.
+              }
+            }
+          </p>
+        </div>
+        <div class="actions">
+          @if (section === 'articles') {
+            <button (click)="export()" [disabled]="busy() || loading()">Exporter CSV</button
+            ><button class="primary" (click)="article()">+ Nouvel article</button>
+          }
+          @if (section === 'utilisateurs' && auth.user()?.origine === 'LOCAL') {
+            <button class="primary" (click)="user()">+ Compte local</button>
+          }
+          @if (section !== 'profil') {
+            <button (click)="load()" [disabled]="loading()" aria-label="Actualiser">
+              ↻ Actualiser
+            </button>
+          }
+        </div>
+      </div>
+      @if (error()) {
+        <div class="error" role="alert">
+          {{ error() }} <button (click)="load()">Réessayer</button>
+        </div>
+      }
+      @if (success()) {
+        <div class="success" role="status">
+          {{ success() }}<button aria-label="Fermer le message" (click)="success.set('')">×</button>
+        </div>
+      }
+      @if (section === 'tableau-bord') {
+        <div class="stats">
+          @for (
+            metric of [
+              ['articlesActifs', 'Articles actifs'],
+              ['articlesStockBas', 'Sous le seuil d’alerte'],
+              ['articlesEnRupture', 'En rupture'],
+              ['alertesNonAcquittees', 'Alertes à consulter'],
+              ['articlesArchives', 'Articles archivés'],
+              ['mouvements', 'Mouvements enregistrés'],
+            ];
+            track metric[0]
+          ) {
+            <article class="stat">
+              <p>{{ metric[1] }}</p>
+              <strong>{{ loading() ? '—' : (stats()[metric[0]] ?? '—') }}</strong
+              ><span>{{
+                metric[0] === 'articlesEnRupture'
+                  ? 'Disponibilité à surveiller'
+                  : 'Situation actuelle'
+              }}</span>
+            </article>
+          }
+        </div>
+        <section class="panel welcome">
+          <div>
+            <p class="eyebrow">UNE GESTION AU QUOTIDIEN</p>
+            <h2>Chaque distribution commence<br />par une demande.</h2>
+            <p>Consultez les demandes, vérifiez les stocks et informez vos collaborateurs.</p>
+            <a routerLink="/demandes" class="button primary">Consulter les demandes →</a>
+          </div>
+          <div class="stock-art" aria-hidden="true">▤<span>GA</span></div>
+        </section>
+      } @else if (section === 'profil') {
+        <section class="panel profile">
+          <span class="avatar large">{{ auth.user()?.nom?.charAt(0) }}</span>
+          <h2>{{ auth.user()?.nom }}</h2>
+          <dl>
+            <dt>Identifiant</dt>
+            <dd>{{ auth.user()?.identifiant }}</dd>
+            <dt>Adresse mail</dt>
+            <dd>{{ auth.user()?.email || 'Non renseignée' }}</dd>
+            <dt>Rôle</dt>
+            <dd>{{ label(auth.user()?.role) }}</dd>
+            <dt>Authentification</dt>
+            <dd>
+              {{
+                auth.user()?.origine === 'AD'
+                  ? 'Compte entreprise Active Directory'
+                  : 'Compte local'
+              }}
+            </dd>
+          </dl>
+          @if (auth.user()?.origine === 'LOCAL') {
+            <button (click)="password()">Changer mon mot de passe</button>
+          } @else {
+            <p class="notice">
+              Votre nom, votre adresse mail, votre mot de passe et votre rôle sont gérés dans
+              l’annuaire de l’entreprise.
+            </p>
+          }
+        </section>
+      } @else {
+        <section class="panel">
+          <form class="filters" (ngSubmit)="load(true)">
+            @if (section === 'articles' || section === 'catalogue') {
+              <label class="search"
+                >Rechercher<input
+                  name="recherche"
+                  [(ngModel)]="recherche"
+                  maxlength="150"
+                  placeholder="Référence ou désignation…"
+              /></label>
+            }
+            @if (section === 'articles') {
+              <label
+                >État<select name="actif" [(ngModel)]="actif">
+                  <option value="">Tous les articles</option>
+                  <option value="true">Actifs</option>
+                  <option value="false">Archivés</option>
+                </select></label
+              ><label class="check"
+                ><input type="checkbox" name="stockBas" [(ngModel)]="stockBas" />Stock bas
+                uniquement</label
+              >
+            }
+            @if (requestList) {
+              <label
+                >Statut<select name="statut" [(ngModel)]="statut">
+                  <option value="">Tous les statuts</option>
+                  @for (s of ['EN_ATTENTE', 'APPROUVEE', 'REFUSEE', 'ANNULEE']; track s) {
+                    <option [value]="s">{{ label(s) }}</option>
+                  }
+                </select></label
+              >
+            }
+            @if (section === 'alertes') {
+              <label class="check"
+                ><input type="checkbox" name="resolved" [(ngModel)]="inclureResolues" />Inclure les
+                alertes résolues</label
+              >
+            }
+            @if (section === 'mouvements') {
+              <label
+                >Article (ID)<input
+                  type="number"
+                  name="articleId"
+                  [(ngModel)]="articleId"
+                  min="1"
+                  step="1" /></label
+              ><label
+                >Type<select name="type" [(ngModel)]="type">
+                  <option value="">Tous</option>
+                  <option value="ENTREE">Entrée</option>
+                  <option value="SORTIE">Sortie</option>
+                </select></label
+              ><label>Du<input type="datetime-local" name="debut" [(ngModel)]="debut" /></label
+              ><label>Au<input type="datetime-local" name="fin" [(ngModel)]="fin" /></label>
+            }
+            @if (
+              [
+                'articles',
+                'catalogue',
+                'demandes',
+                'mes-demandes',
+                'alertes',
+                'mouvements',
+              ].includes(section)
+            ) {
+              <button type="submit" [disabled]="loading()">Filtrer</button>
+            }
+            <span class="result-count">{{ data().totalElements }} résultat(s)</span>
+          </form>
+          @if (loading()) {
+            <div class="empty" role="status">Chargement des données…</div>
+          } @else if (error()) {
+            <div class="empty">Les données n’ont pas pu être actualisées.</div>
+          } @else if (data().content.length === 0) {
+            <div class="empty">
+              <span>◇</span>
+              <h3>Aucun résultat</h3>
+              <p>Les éléments s’afficheront ici dès qu’ils seront disponibles.</p>
+              @if (section === 'mes-demandes') {
+                <a routerLink="/catalogue" class="button primary">Parcourir le catalogue</a>
+              }
+            </div>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    @switch (section) {
+                      @case ('catalogue') {
+                        <th>Article</th>
+                        <th>Unité</th>
+                        <th>Disponibilité</th>
+                      }
+                      @case ('articles') {
+                        <th>Article</th>
+                        <th>Stock</th>
+                        <th>Seuil</th>
+                        <th>État</th>
+                      }
+                      @case ('demandes') {
+                        <th>Demande</th>
+                        <th>Demandeur</th>
+                        <th>Quantité</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                      }
+                      @case ('mes-demandes') {
+                        <th>Demande</th>
+                        <th>Quantité</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                      }
+                      @case ('mouvements') {
+                        <th>Date / Article</th>
+                        <th>Type</th>
+                        <th>Quantité / Stock après</th>
+                        <th>Bénéficiaire</th>
+                        <th>Responsable / Motif</th>
+                      }
+                      @case ('mes-consommations') {
+                        <th>Date / Article</th>
+                        <th>Quantité</th>
+                        <th>Responsable / Motif</th>
+                      }
+                      @case ('alertes') {
+                        <th>Article</th>
+                        <th>Stock / Seuil</th>
+                        <th>Créée le</th>
+                        <th>État</th>
+                      }
+                      @case ('utilisateurs') {
+                        <th>Utilisateur</th>
+                        <th>Mail</th>
+                        <th>Rôle / Origine</th>
+                        <th>Accès</th>
+                      }
+                      @case ('courriels') {
+                        <th>Demande / Destinataire</th>
+                        <th>Sujet</th>
+                        <th>Tentatives</th>
+                        <th>Prochain essai / Erreur</th>
+                      }
+                    }
+                    <th class="right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of data().content; track r.id) {
+                    <tr>
+                      @switch (section) {
+                        @case ('catalogue') {
+                          <td>
+                            <strong>{{ r['nom'] }}</strong
+                            ><small>{{ r['reference'] }}</small>
+                          </td>
+                          <td>{{ r['unite'] }}</td>
+                          <td>
+                            <span class="badge" [class.warn]="!r['disponible']">{{
+                              r['disponible'] ? 'Disponible' : 'Indisponible actuellement'
+                            }}</span>
+                          </td>
+                        }
+                        @case ('articles') {
+                          <td>
+                            <strong>{{ r['nom'] }}</strong
+                            ><small>{{ r['reference'] }} · #{{ r.id }}</small>
+                          </td>
+                          <td>
+                            <strong [class.danger-text]="r['stockBas']">{{ r['quantite'] }}</strong>
+                            {{ r['unite'] }}
+                          </td>
+                          <td>{{ r['seuilAlerte'] }}</td>
+                          <td>
+                            <span class="badge" [class.warn]="r['stockBas'] || !r['actif']">{{
+                              !r['actif'] ? 'Archivé' : r['stockBas'] ? 'Stock bas' : 'Disponible'
+                            }}</span>
+                          </td>
+                        }
+                        @case ('demandes') {
+                          <td>
+                            <strong>{{ r['article'] }}</strong
+                            ><small>#{{ r.id }}</small>
+                          </td>
+                          <td>{{ r['demandeur'] }}</td>
+                          <td>{{ r['quantite'] }}</td>
+                          <td>{{ r['creeLe'] | date: 'dd/MM/yyyy HH:mm' }}</td>
+                          <td>
+                            <span class="badge" [class.warn]="r['statut'] === 'EN_ATTENTE'">{{
+                              label(r['statut'])
+                            }}</span>
+                          </td>
+                        }
+                        @case ('mes-demandes') {
+                          <td>
+                            <strong>{{ r['article'] }}</strong
+                            ><small>#{{ r.id }}</small>
+                          </td>
+                          <td>{{ r['quantite'] }}</td>
+                          <td>{{ r['creeLe'] | date: 'dd/MM/yyyy HH:mm' }}</td>
+                          <td>
+                            <span class="badge" [class.warn]="r['statut'] === 'EN_ATTENTE'">{{
+                              label(r['statut'])
+                            }}</span>
+                          </td>
+                        }
+                        @case ('mouvements') {
+                          <td>
+                            <strong>{{ r['nomArticle'] }}</strong
+                            ><small
+                              >{{ r['date'] | date: 'dd/MM/yyyy HH:mm' }} · #{{
+                                r['articleId']
+                              }}</small
+                            >
+                          </td>
+                          <td>
+                            <span class="badge" [class.warn]="r['type'] === 'SORTIE'">{{
+                              label(r['type'])
+                            }}</span>
+                          </td>
+                          <td>
+                            {{ r['quantite'] }}<small>Stock après : {{ r['stockApres'] }}</small>
+                          </td>
+                          <td>{{ r['beneficiaire'] || '—' }}</td>
+                          <td>
+                            {{ r['responsable'] }}<small>{{ r['motif'] || '—' }}</small>
+                          </td>
+                        }
+                        @case ('mes-consommations') {
+                          <td>
+                            <strong>{{ r['nomArticle'] }}</strong
+                            ><small>{{ r['date'] | date: 'dd/MM/yyyy HH:mm' }}</small>
+                          </td>
+                          <td>{{ r['quantite'] }}</td>
+                          <td>
+                            {{ r['responsable'] }}<small>{{ r['motif'] || '—' }}</small>
+                          </td>
+                        }
+                        @case ('alertes') {
+                          <td>
+                            <strong>{{ r['nomArticle'] }}</strong>
+                          </td>
+                          <td>{{ r['quantite'] }} / {{ r['seuilAlerte'] }}</td>
+                          <td>{{ r['creeLe'] | date: 'dd/MM/yyyy HH:mm' }}</td>
+                          <td>
+                            <span class="badge" [class.warn]="!r['resolueLe']">{{
+                              r['resolueLe']
+                                ? 'Résolue'
+                                : r['acquitteeLe']
+                                  ? 'Acquittée'
+                                  : 'À consulter'
+                            }}</span
+                            ><small>{{ r['acquitteePar'] }}</small>
+                          </td>
+                        }
+                        @case ('utilisateurs') {
+                          <td>
+                            <strong>{{ r['nom'] }}</strong
+                            ><small>{{ r['identifiant'] }} · #{{ r.id }}</small>
+                          </td>
+                          <td>{{ r['email'] || '—' }}</td>
+                          <td>
+                            {{ label(r['role']) }}<small>{{ r['origine'] }}</small>
+                          </td>
+                          <td>
+                            <span class="badge" [class.warn]="!r['actif']">{{
+                              r['actif'] ? 'Activé' : 'Désactivé'
+                            }}</span>
+                          </td>
+                        }
+                        @case ('courriels') {
+                          <td>
+                            <strong>Demande #{{ r['demandeId'] }}</strong
+                            ><small>{{ r['destinataire'] }}</small>
+                          </td>
+                          <td>{{ r['sujet'] }}</td>
+                          <td>{{ r['tentatives'] }} / 8</td>
+                          <td>
+                            {{
+                              r['tentatives'] >= 8
+                                ? 'Relance manuelle requise'
+                                : (r['prochaineTentative'] | date: 'dd/MM/yyyy HH:mm')
+                            }}<small class="danger-text">{{ r['derniereErreur'] }}</small>
+                          </td>
+                        }
+                      }
+                      <td class="row-actions">
+                        @switch (section) {
+                          @case ('catalogue') {
+                            <button (click)="newRequest(r)">Demander →</button>
+                          }
+                          @case ('articles') {
+                            <button (click)="article(r)">Modifier</button>
+                            @if (r['actif']) {
+                              <button (click)="movement(r)">Mouvement</button>
+                            }
+                            <button
+                              (click)="confirm(r, 'state')"
+                              [disabled]="r['actif'] && r['quantite'] !== 0"
+                              title="Un article doit avoir un stock nul pour être archivé"
+                            >
+                              {{ r['actif'] ? 'Archiver' : 'Réactiver' }}
+                            </button>
+                          }
+                          @case ('utilisateurs') {
+                            <button (click)="user(r)">Modifier</button>
+                            @if (r['origine'] === 'LOCAL') {
+                              <button (click)="password(r)">Mot de passe</button>
+                            }
+                          }
+                          @case ('alertes') {
+                            @if (!r['acquitteeLe'] && !r['resolueLe']) {
+                              <button (click)="confirm(r, 'ack')">Acquitter</button>
+                            }
+                          }
+                          @case ('courriels') {
+                            <button (click)="confirm(r, 'retry')">Relancer</button>
+                          }
+                        }
+                        @if (requestList) {
+                          <button (click)="show(r)">Détails</button>
+                          @if (r['statut'] === 'EN_ATTENTE') {
+                            @if (section === 'demandes') {
+                              <button class="primary" (click)="decision(r, true)">Approuver</button
+                              ><button (click)="decision(r, false)">Refuser</button>
+                            }
+                            <button (click)="confirm(r, 'cancel')">Annuler</button>
+                          }
+                        }
+                        @if (movementList) {
+                          <span class="muted">Enregistré</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          <footer class="pagination">
+            <span
+              >Page {{ data().totalPages ? data().page + 1 : 0 }} sur {{ data().totalPages }}</span
+            >
+            <div>
+              <button (click)="changePage(-1)" [disabled]="loading() || page === 0">
+                ← Précédent</button
+              ><button
+                (click)="changePage(1)"
+                [disabled]="loading() || page + 1 >= data().totalPages"
+              >
+                Suivant →
+              </button>
+            </div>
+          </footer>
+        </section>
+        @if (section === 'catalogue') {
+          <p class="footnote">
+            Une demande ne réserve pas le stock. La distribution est enregistrée après approbation
+            de l’administrateur.
+          </p>
+        }
+        @if (section === 'utilisateurs') {
+          <p class="footnote">
+            Les comptes AD sont ajoutés lors de leur première connexion. Leurs rôles sont attribués
+            par les groupes de l’annuaire.
+          </p>
+        }
+      }
+    </main>
+    <footer class="page-footer">
+      GA Burkina · Gestion des consommables
+      <span>Un suivi clair, de la demande à la distribution.</span>
+    </footer>
+  </div>
+</div>
+@if (modal()) {
+  <div class="modal-backdrop">
+    <section
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      (keydown)="trap($event)"
+    >
+      <header>
+        <h2 id="modal-title">{{ modal() }}</h2>
+        <button (click)="close()" [disabled]="busy()" aria-label="Fermer">×</button>
+      </header>
+      @if (modalError()) {
+        <p role="alert" class="error">{{ modalError() }}</p>
+      }
+      @if (action === 'detail') {
+        @if (detail(); as d) {
+          <dl>
+            <dt>Article</dt>
+            <dd>{{ d['article'] }}</dd>
+            <dt>Demandeur</dt>
+            <dd>{{ d['demandeur'] }}</dd>
+            <dt>Quantité</dt>
+            <dd>{{ d['quantite'] }}</dd>
+            <dt>Statut</dt>
+            <dd>{{ label(d['statut']) }}</dd>
+            <dt>Créée le</dt>
+            <dd>{{ d['creeLe'] | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            <dt>Motif</dt>
+            <dd class="multiline">{{ d['motif'] || 'Non renseigné' }}</dd>
+            <dt>Réponse</dt>
+            <dd class="multiline">{{ d['reponse'] || 'Aucune réponse' }}</dd>
+            @if (d['traiteeLe']) {
+              <dt>Traitée par</dt>
+              <dd>{{ d['traiteePar'] }} · {{ d['traiteeLe'] | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            }
+          </dl>
+        } @else if (busy()) {
+          <p>Chargement…</p>
+        }
+        <button (click)="close()" [disabled]="busy()">Fermer</button>
+      } @else {
+        <form #editor="ngForm" (ngSubmit)="save()">
+          @if (action === 'decision' && form['statut'] === 'APPROUVEE') {
+            <p class="notice">
+              L’approbation distribue {{ selected?.['quantite'] }} unité(s) de
+              {{ selected?.['article'] }} et les retire immédiatement du stock.
+            </p>
+          }
+          @if (action === 'request' && !selected?.['disponible']) {
+            <p class="notice">
+              Cet article est actuellement indisponible. Vous pouvez envoyer une demande, qui
+              restera soumise à la disponibilité du stock.
+            </p>
+          }
+          @if (fields.length === 0) {
+            <p>Confirmez cette opération pour l’enregistrer.</p>
+          }
+          @for (field of fields; track field.key) {
+            <label
+              >{{ field.label }}
+              @if (field.required) {
+                <span aria-hidden="true">*</span>
+              }
+              @if (field.options) {
+                <select
+                  [name]="field.key"
+                  [(ngModel)]="form[field.key]"
+                  [required]="!!field.required"
+                  [disabled]="field.readonly || busy()"
+                >
+                  @for (o of field.options; track o.value) {
+                    <option [value]="o.value">{{ o.label }}</option>
+                  }
+                </select>
+              } @else if (field.type === 'textarea') {
+                <textarea
+                  [name]="field.key"
+                  [(ngModel)]="form[field.key]"
+                  [required]="!!field.required"
+                  [maxlength]="field.max || 1000"
+                  [disabled]="busy()"
+                  rows="4"
+                ></textarea>
+              } @else {
+                <input
+                  [name]="field.key"
+                  [(ngModel)]="form[field.key]"
+                  [type]="field.type || 'text'"
+                  [required]="!!field.required"
+                  [readonly]="!!field.readonly"
+                  [disabled]="busy()"
+                  [attr.min]="field.type === 'number' ? field.min : null"
+                  [minlength]="field.type === 'password' ? field.min || 0 : 0"
+                  [maxlength]="field.max || 254"
+                  [attr.step]="field.type === 'number' ? 1 : null"
+                  [attr.autocomplete]="field.type === 'password' ? 'new-password' : 'off'"
+                />
+              }
+            </label>
+          }
+          <footer>
+            <button type="button" (click)="close()" [disabled]="busy()">Retour</button
+            ><button class="primary" type="submit" [disabled]="editor.invalid || busy()">
+              {{ busy() ? 'Enregistrement…' : 'Confirmer' }}
+            </button>
+          </footer>
+        </form>
+      }
+    </section>
+  </div>
+}

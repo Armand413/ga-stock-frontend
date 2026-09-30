@@ -1,59 +1,35 @@
-# Frontend
+# GA — Gestion des consommables
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+Frontend Angular de l’application Spring Boot située dans `../gestion-stock`.
 
-## Development server
+## Démarrer
 
-To start a local development server, run:
+Depuis ce dossier : `npm ci`, puis `npm start`. Ouvrir http://localhost:4200.
+Le proxy de développement transmet `/api/**` à http://localhost:8080 ; ajuster `proxy.conf.json` si nécessaire.
+Démarrer aussi le backend avec ses paramètres locaux de base de données, AD et SMTP. Aucun secret AD ou SMTP ne doit être ajouté au frontend.
 
-```bash
-ng serve
-```
+## Fonctionnalités
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- Connexion avec le compte entreprise ; navigation et accès adaptés au rôle.
+- Catalogue, création et annulation de demandes, consultation des réponses, historique personnel.
+- Administration : indicateurs, articles, seuils, archivage/réactivation, entrées/sorties, export CSV filtré, historique filtré, alertes et acquittement.
+- Traitement des demandes avec réponse obligatoire et explication du débit immédiat de stock lors de l’approbation.
+- Comptes AD : consultation et activation/désactivation. Nom et rôle proviennent de l’annuaire. Création de comptes et changement de mot de passe réservés au mode local.
+- Surveillance des notifications non envoyées et relance. L’envoi de mail est assuré par le backend ; une mise en file ne garantit pas encore la livraison.
+- Pagination, affichage mobile, formulaires, états de chargement/erreur et protection contre les doubles clics.
 
-## Code scaffolding
+Les sorties manuelles peuvent utiliser l’ID bénéficiaire visible dans Utilisateurs pour alimenter son historique personnel. Un bénéficiaire saisi uniquement en texte libre n’est pas lié à un compte.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Session
 
-```bash
-ng generate component component-name
-```
+Le jeton reste en mémoire et n’est jamais enregistré dans le stockage du navigateur. Un rechargement de page demande une nouvelle connexion. Une réponse 401 ferme la session. Le backend reste l’autorité pour chaque permission ; les gardes Angular servent à la navigation.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Vérifications
 
-```bash
-ng generate --help
-```
+`npm run build` compile la version de production.
+`npm test -- --watch=false` exécute les tests de parcours avec serveur simulé (droits, expiration, demandes, conflits, pagination, utilisateurs AD, notifications).
+Les vrais identifiants AD et le serveur SMTP doivent être vérifiés dans l’environnement de l’entreprise.
 
-## Building
+## Déploiement
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Servir `dist/frontend/browser` par HTTPS avec repli des routes Angular vers `index.html`. Configurer un reverse proxy de même origine pour `/api/` vers Spring Boot. Le proxy de `npm start` n’est pas utilisé en production. Les pages sont rendues côté client, sans rendu serveur de données privées. Ne pas ouvrir l’application directement avec `file://`.
