@@ -4,8 +4,10 @@ import { Auth } from './core/auth';
 import { Login } from './pages/login';
 import { Workspace } from './pages/workspace';
 const signedIn = () => (inject(Auth).user() ? true : inject(Router).createUrlTree(['/connexion']));
-const admin = () =>
-  inject(Auth).user()?.role === 'ADMIN' ? true : inject(Router).createUrlTree(['/catalogue']);
+const admin = (route: { routeConfig?: { path?: string } | null }) =>
+  inject(Auth).canSection(route.routeConfig?.path || '')
+    ? true
+    : inject(Router).createUrlTree(['/catalogue']);
 export const routes: Routes = [
   { path: 'connexion', component: Login },
   ...['catalogue', 'mes-demandes', 'mes-consommations', 'profil'].map((path) => ({

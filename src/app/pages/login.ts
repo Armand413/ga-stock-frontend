@@ -6,7 +6,7 @@ import { Auth, errorMessage } from '../core/auth';
   imports: [FormsModule],
   template: `<div class="login-layout">
     <section class="login-story">
-      <a class="brand">GA<span>GESTION DES CONSOMMABLES</span></a>
+      <p class="eyebrow">GESTION DES CONSOMMABLES</p>
       <div>
         <p class="eyebrow">VOTRE ESPACE ENTREPRISE</p>
         <h1>Le bon matériel.<br />Au bon moment.</h1>
@@ -16,18 +16,21 @@ import { Auth, errorMessage } from '../core/auth';
     </section>
     <main class="login-form">
       <div class="login-card">
+        <div class="login-logo">
+          <img src="/images/logo-ga.png" alt="Générale des Assurances" width="350" height="250" />
+        </div>
         <p class="eyebrow">BIENVENUE</p>
         <h2>Connectez-vous</h2>
-        <p class="muted">Utilisez les identifiants de votre compte entreprise.</p>
+        <p class="muted">Connectez-vous avec votre compte utilisateur ou administrateur.</p>
         <form #f="ngForm" (ngSubmit)="submit()">
           <label
-            >Identifiant entreprise<input
+            >Identifiant<input
               name="identifiant"
               [(ngModel)]="identifiant"
               required
               maxlength="254"
               autocomplete="username"
-              placeholder="prenom.nom ou nom@domaine" /></label
+              placeholder="Votre identifiant" /></label
           ><label
             >Mot de passe<input
               name="password"
@@ -45,8 +48,8 @@ import { Auth, errorMessage } from '../core/auth';
           </button>
         </form>
         <p class="footnote">
-          Votre compte et vos droits d’accès sont gérés par votre entreprise. En cas de difficulté,
-          contactez votre administrateur.
+          Votre compte et vos droits d’accès sont gérés par votre administrateur. En cas de
+          difficulté, contactez votre administrateur.
         </p>
       </div>
     </main>

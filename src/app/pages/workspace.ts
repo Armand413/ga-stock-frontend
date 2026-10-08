@@ -1,3 +1,4 @@
+import { permissions } from '../core/permissions';
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -52,6 +53,20 @@ export class Workspace implements OnInit, OnDestroy {
     ['utilisateurs', '◎', 'Utilisateurs'],
     ['courriels', '✉', 'Notifications'],
   ];
+  get accessibleAdministration() {
+    return this.administration.filter((item) => this.auth.canSection(item[0]));
+  }
+  droits(row: Row) {
+    this.open(
+      'Fonctionnalités autorisées pour ' + row['nom'],
+      'permissions',
+      permissions.map((p) => ({ key: p.code, label: p.label, type: 'checkbox' })),
+      Object.fromEntries(
+        permissions.map((p) => [p.code, (row['permissions'] || []).includes(p.code)]),
+      ),
+      row,
+    );
+  }
   data = signal<Page<Row>>({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
   stats = signal<Record<string, number>>({});
   loading = signal(false);
@@ -498,6 +513,11 @@ export class Workspace implements OnInit, OnDestroy {
         break;
       case 'retry':
         url = `/courriels/${id}/reessayer`;
+        break;
+      case 'permissions':
+        url = `/utilisateurs/${id}/permissions`;
+        method = 'PUT';
+        body = { permissions: permissions.filter((p) => f[p.code] === true).map((p) => p.code) };
         break;
       case 'user':
         url = '/utilisateurs' + (id ? '/' + id : '');

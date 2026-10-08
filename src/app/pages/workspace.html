@@ -1,6 +1,10 @@
 <div class="app-layout">
   <aside class="sidebar" [class.open]="mobile()">
-    <a routerLink="/catalogue" class="brand">GA<span>GESTION DES CONSOMMABLES</span></a>
+    <a routerLink="/catalogue" class="brand"
+      ><img src="/images/logo-ga.png" alt="GA" width="350" height="250" /><span
+        >GESTION DES CONSOMMABLES</span
+      ></a
+    >
     <p class="nav-caption">MON ESPACE</p>
     <nav aria-label="Espace personnel">
       @for (item of personal; track item[0]) {
@@ -10,10 +14,10 @@
         >
       }
     </nav>
-    @if (admin) {
+    @if (accessibleAdministration.length) {
       <p class="nav-caption">ADMINISTRATION</p>
       <nav aria-label="Administration">
-        @for (item of administration; track item[0]) {
+        @for (item of accessibleAdministration; track item[0]) {
           <a [routerLink]="'/' + item[0]" routerLinkActive="active"
             ><span>{{ item[1] }}</span
             >{{ item[2] }}</a
@@ -22,11 +26,7 @@
       </nav>
     }
     <div class="sidebar-bottom">
-      <a routerLink="/profil" class="account"
-        ><span class="avatar">{{ auth.user()?.nom?.charAt(0) }}</span
-        ><span
-          >{{ auth.user()?.nom }}<small>{{ label(auth.user()?.role) }}</small></span
-        ></a
+      <span class="workspace-mark">● Espace entreprise</span
       ><button class="logout" (click)="logout()">Se déconnecter ↗</button>
     </div>
   </aside>
@@ -42,7 +42,12 @@
       ><span
         >GA Burkina <span class="separator">/</span>
         {{ admin ? 'Administration' : 'Espace collaborateur' }}</span
-      ><span class="workspace-mark">● Espace entreprise</span>
+      ><a routerLink="/profil" class="account"
+        ><span class="avatar">{{ auth.user()?.nom?.charAt(0) }}</span
+        ><span
+          >{{ auth.user()?.nom }}<small>{{ label(auth.user()?.role) }}</small></span
+        ></a
+      >
     </header>
     <main class="content">
       <div class="page-heading">
@@ -71,8 +76,15 @@
         </div>
         <div class="actions">
           @if (section === 'articles') {
-            <button (click)="export()" [disabled]="busy() || loading()">Exporter CSV</button
-            ><button class="primary" (click)="article()">+ Nouvel article</button>
+            <button
+              [hidden]="!auth.can('EXPORTER_STOCK')"
+              (click)="export()"
+              [disabled]="busy() || loading()"
+            >
+              Exporter CSV</button
+            ><button [hidden]="!auth.can('GERER_ARTICLES')" class="primary" (click)="article()">
+              + Nouvel article
+            </button>
           }
           @if (section === 'utilisateurs' && auth.user()?.origine === 'LOCAL') {
             <button class="primary" (click)="user()">+ Compte local</button>
@@ -123,7 +135,12 @@
             <p class="eyebrow">UNE GESTION AU QUOTIDIEN</p>
             <h2>Chaque distribution commence<br />par une demande.</h2>
             <p>Consultez les demandes, vérifiez les stocks et informez vos collaborateurs.</p>
-            <a routerLink="/demandes" class="button primary">Consulter les demandes →</a>
+            <a
+              [hidden]="!auth.can('TRAITER_DEMANDES')"
+              routerLink="/demandes"
+              class="button primary"
+              >Consulter les demandes →</a
+            >
           </div>
           <div class="stock-art" aria-hidden="true">▤<span>GA</span></div>
         </section>
@@ -140,11 +157,7 @@
             <dd>{{ label(auth.user()?.role) }}</dd>
             <dt>Authentification</dt>
             <dd>
-              {{
-                auth.user()?.origine === 'AD'
-                  ? 'Compte entreprise Active Directory'
-                  : 'Compte local'
-              }}
+              {{ auth.user()?.origine === 'AD' ? 'Compte externe' : 'Compte local' }}
             </dd>
           </dl>
           @if (auth.user()?.origine === 'LOCAL') {
@@ -449,11 +462,14 @@
                             <button (click)="newRequest(r)">Demander →</button>
                           }
                           @case ('articles') {
-                            <button (click)="article(r)">Modifier</button>
-                            @if (r['actif']) {
+                            <button [hidden]="!auth.can('GERER_ARTICLES')" (click)="article(r)">
+                              Modifier
+                            </button>
+                            @if (r['actif'] && auth.can('GERER_STOCK')) {
                               <button (click)="movement(r)">Mouvement</button>
                             }
                             <button
+                              [hidden]="!auth.can('GERER_ARTICLES')"
                               (click)="confirm(r, 'state')"
                               [disabled]="r['actif'] && r['quantite'] !== 0"
                               title="Un article doit avoir un stock nul pour être archivé"
@@ -463,6 +479,9 @@
                           }
                           @case ('utilisateurs') {
                             <button (click)="user(r)">Modifier</button>
+                            @if (r['role'] !== 'ADMIN') {
+                              <button (click)="droits(r)">Droits</button>
+                            }
                             @if (r['origine'] === 'LOCAL') {
                               <button (click)="password(r)">Mot de passe</button>
                             }
@@ -520,8 +539,8 @@
         }
         @if (section === 'utilisateurs') {
           <p class="footnote">
-            Les comptes AD sont ajoutés lors de leur première connexion. Leurs rôles sont attribués
-            par les groupes de l’annuaire.
+            Créez des comptes locaux avec le rôle Utilisateur ou Administrateur. Gérez leur accès et
+            leur mot de passe depuis cette page.
           </p>
         }
       }
@@ -591,13 +610,28 @@
           @if (fields.length === 0) {
             <p>Confirmez cette opération pour l’enregistrer.</p>
           }
+          @if (action === 'permissions') {
+            <p class="notice">
+              Cochez les fonctionnalités à accorder. Chaque utilisateur conserve son espace
+              personnel. La gestion des comptes reste réservée aux administrateurs. Toute
+              modification impose une nouvelle connexion.
+            </p>
+          }
           @for (field of fields; track field.key) {
             <label
               >{{ field.label }}
               @if (field.required) {
                 <span aria-hidden="true">*</span>
               }
-              @if (field.options) {
+              @if (field.type === 'checkbox') {
+                <input
+                  class="permission-checkbox"
+                  type="checkbox"
+                  [name]="field.key"
+                  [(ngModel)]="form[field.key]"
+                  [disabled]="busy()"
+                />
+              } @else if (field.options) {
                 <select
                   [name]="field.key"
                   [(ngModel)]="form[field.key]"

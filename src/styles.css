@@ -1,4 +1,8 @@
 :root {
+  --brand-green: #b8d69a;
+  --brand-hover: #a6c787;
+  --brand-ink: #293d20;
+  --brand-soft: #eef5e7;
   font-family: Inter, 'Segoe UI', Arial, sans-serif;
   color: #24362f;
   background: #f5f7f6;
@@ -43,16 +47,16 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #d5ad5e;
+  outline: 3px solid #69864f;
   outline-offset: 3px;
 }
 .primary {
-  background: #176747;
-  color: white;
-  border-color: #176747;
+  background: var(--brand-green);
+  color: var(--brand-ink);
+  border-color: var(--brand-green);
 }
 .primary:hover {
-  background: #104c34;
+  background: var(--brand-hover);
 }
 a {
   color: inherit;
@@ -141,7 +145,7 @@ form > label {
   font-size: 35px;
   font-weight: 850;
   letter-spacing: -2px;
-  color: #176747;
+  color: var(--brand-ink);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -175,8 +179,8 @@ nav a span {
   text-align: center;
 }
 nav a.active {
-  color: #176747;
-  background: #eaf4ee;
+  color: var(--brand-ink);
+  background: var(--brand-soft);
   font-weight: 700;
 }
 nav a:hover {
@@ -356,7 +360,7 @@ tbody tr:hover {
 .badge {
   display: inline-block;
   padding: 4px 9px;
-  background: #eaf4ed;
+  background: var(--brand-soft);
   color: #398154;
   font-size: 10px;
   border-radius: 5px;
@@ -427,7 +431,7 @@ tbody tr:hover {
   padding: 35px;
   display: flex;
   justify-content: space-between;
-  background: #ecf2e9;
+  background: var(--brand-soft);
 }
 .welcome h2 {
   font-size: 27px;
@@ -472,7 +476,7 @@ tbody tr:hover {
   color: #a24030;
 }
 .success {
-  background: #e7f4ed;
+  background: var(--brand-soft);
   color: #286847;
   display: flex;
   justify-content: space-between;
@@ -559,8 +563,8 @@ dd {
   grid-template-columns: 1fr 1fr;
 }
 .login-story {
-  background: #153d2d;
-  color: #f4f8ef;
+  background: var(--brand-green);
+  color: var(--brand-ink);
   padding: 55px 65px;
   display: flex;
   flex-direction: column;
@@ -583,7 +587,7 @@ dd {
   pointer-events: none;
 }
 .login-story .brand {
-  color: #fff;
+  color: var(--brand-ink);
 }
 .login-story h1 {
   font-size: 51px;
@@ -593,15 +597,15 @@ dd {
 }
 .login-story p:not(.eyebrow) {
   max-width: 350px;
-  color: #afc5b6;
+  color: #34482a;
   font-size: 15px;
   line-height: 1.8;
 }
 .login-story .eyebrow {
-  color: #b5ca91;
+  color: #34482a;
 }
 .login-story small {
-  color: #95b29d;
+  color: #34482a;
 }
 .login-form {
   display: flex;
@@ -741,4 +745,67 @@ dd {
   * {
     scroll-behavior: auto !important;
   }
+}
+
+.brand img {
+  width: 78px;
+  height: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.login-story .brand img {
+  width: 115px;
+}
+nav a.active {
+  box-shadow: inset 3px 0 0 var(--brand-green);
+}
+.login-logo {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+.login-logo img {
+  width: 130px;
+  height: auto;
+  object-fit: contain;
+}
+.sidebar-bottom .workspace-mark {
+  display: block;
+  margin-bottom: 12px;
+}
+.topbar .account {
+  margin-left: auto;
+  color: #24362f;
+}
+@media (max-width: 760px) {
+  .topbar .account {
+    font-size: 11px;
+    gap: 7px;
+  }
+  .topbar .account .avatar {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  .topbar > span {
+    font-size: 10px;
+  }
+}
+[hidden] {
+  display: none !important;
+}
+.dialog label:has(.permission-checkbox) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0ed;
+}
+.permission-checkbox {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #69864f;
 }

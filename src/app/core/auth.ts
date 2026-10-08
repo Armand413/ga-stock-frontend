@@ -1,3 +1,4 @@
+import { sectionPermissions } from './permissions';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -9,6 +10,14 @@ export class Auth {
   private router = inject(Router);
   user = signal<User | null>(null);
   token = '';
+  can(permission: string) {
+    return this.user()?.role === 'ADMIN' || !!this.user()?.permissions?.includes(permission);
+  }
+  canSection(section: string) {
+    return (
+      this.user()?.role === 'ADMIN' || (sectionPermissions[section] || []).some((p) => this.can(p))
+    );
+  }
   async login(identifiant: string, motDePasse: string) {
     const s = await firstValueFrom(
       this.http.post<Session>('/api/auth/login', { identifiant, motDePasse }),
