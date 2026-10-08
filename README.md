@@ -27,7 +27,6 @@ Le jeton reste en mémoire et n’est jamais enregistré dans le stockage du nav
 ## Vérifications
 
 `npm run build` compile la version de production.
-`npm test -- --watch=false` exécute les tests de parcours avec serveur simulé (droits, expiration, demandes, conflits, pagination, utilisateurs AD, notifications).
 Les vrais identifiants AD et le serveur SMTP doivent être vérifiés dans l’environnement de l’entreprise.
 
 ## Déploiement
